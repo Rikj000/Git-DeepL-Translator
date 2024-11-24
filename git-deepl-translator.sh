@@ -51,7 +51,7 @@ function update() {
     wget "$(
         curl -s -H "Accept: application/vnd.github.v3+json" \
         'https://api.github.com/repos/Rikj000/Git-DeepL-Translator/releases/latest' \
-        | jq .assets[0].browser_download_url)";
+        | jq .assets[0].browser_download_url | sed -e 's/^"//' -e 's/"$//')";
     exit;
 }
 
