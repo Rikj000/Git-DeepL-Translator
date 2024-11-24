@@ -172,8 +172,8 @@ cp -r "$INPUT_GIT_REPO_DIR" "$TMP_GIT_REPO_DIR";
 echo "Moving to temporary Git conversion directory ($TMP_GIT_REPO_DIR)...";
 cd "$TMP_GIT_REPO_DIR/" || exit;
 
-echo "Log git commit message history to temporary git-log file ($TMP_GIT_LOG_FILE), include new-lines..."
-git log --pretty=format:"%B" > "$TMP_GIT_LOG_FILE";
+echo "Log git commit message history of all branches to temporary git-log file ($TMP_GIT_LOG_FILE), include new-lines..."
+git log --all --pretty=format:"%B" > "$TMP_GIT_LOG_FILE";
 
 echo "Strip empty new lines from temporary git-log file ($TMP_GIT_LOG_FILE)..."
 sed -i '/^$/d' "$TMP_GIT_LOG_FILE";
