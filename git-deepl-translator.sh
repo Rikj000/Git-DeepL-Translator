@@ -129,6 +129,9 @@ cd "$TMP_GIT_REPO_DIR/" || exit;
 echo "Log git commit message history to temporary git-log file ($TMP_GIT_LOG_FILE), include new-lines..."
 git log --pretty=format:"%B" > "$TMP_GIT_LOG_FILE";
 
+echo "Strip empty new lines from temporary git-log file ($TMP_GIT_LOG_FILE)..."
+sed -i '/^$/d' "$TMP_GIT_LOG_FILE";
+
 echo "Combining temporary git-log file ($TMP_GIT_LOG_FILE) lines with DeepLX translations" \
     "into temporary git-log expressions file ($TMP_GIT_LOG_EXPRESSIONS_FILE)...";
 touch "$TMP_GIT_LOG_EXPRESSIONS_FILE";
