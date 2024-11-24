@@ -11,7 +11,7 @@ OUTPUT_LANGUAGE="EN";
 # === Default Settings =================================================================================================
 
 # Help function
-usage() {
+function usage() {
     cat << EOF
 
   Git-DeepL-Translator - v0.0.0
@@ -39,7 +39,7 @@ EOF
 }
 
 # Update function
-update() {
+function update() {
     echo "Setting up installation directory helpers...";
     INSTALLATION_FILE=$(realpath "$(dirname "$0")/$(basename "$0")");
     INSTALLATION_DIR=$(dirname "$INSTALLATION_FILE");
