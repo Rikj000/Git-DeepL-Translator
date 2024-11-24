@@ -67,6 +67,8 @@ function translate_line() {
     FORMATTED_LINE=${FORMATTED_LINE//\"/\'}
     # Replace '/' with '' to prevent DeepLX from crashing
     FORMATTED_LINE=${FORMATTED_LINE//\\}
+    # Replace '==>' with '-->' to prevent Git-Filter-Repo from becoming confused
+    FORMATTED_LINE=${FORMATTED_LINE//==>/-->}
 
     # Replace 'space' with '' to check if line empty
     if [ -z "${FORMATTED_LINE// }" ] &>/dev/null; then
