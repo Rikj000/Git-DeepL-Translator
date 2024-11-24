@@ -44,7 +44,8 @@ function update() {
     INSTALLATION_FILE=$(realpath "$(dirname "$0")/$(basename "$0")");
     INSTALLATION_DIR=$(dirname "$INSTALLATION_FILE");
 
-    echo "Moving to the installation directory... ($INSTALLATION_DIR)";
+    echo "Moving to the installation directory:";
+    echo "Dir: '$INSTALLATION_DIR'";
     cd "$INSTALLATION_DIR/" || exit;
 
     echo "Downloading + installing latest version...";
@@ -72,7 +73,7 @@ function translate_line() {
 
     # Replace 'space' with '' to check if line empty
     if [ -z "${FORMATTED_LINE// }" ] &>/dev/null; then
-        echo "Line: $LINE_INDEX - Skipping empty line...";
+        echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES - Skipping empty line '$ORIGINAL_LINE'...";
         return;
     fi
 
@@ -87,8 +88,9 @@ function translate_line() {
         }" | jq -r '.data');
 
         if [ "$TRANSLATED_LINE" == "null" ] || [ -z "$TRANSLATED_LINE" ]; then
-            echo "Line: $LINE_INDEX - Received '$TRANSLATED_LINE' translation for line '$FORMATTED_LINE'," \
-                "re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
+            echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES -" \
+                "Received '$TRANSLATED_LINE' translation for line '$ORIGINAL_LINE'...";
+            echo "Re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
             echo "Likely rate-limited, either wait it out, or switch VPN connections + restart 'deeplx' to continue...";
             sleep "$DEEPLX_RETRY_SECONDS";
         fi
@@ -96,7 +98,8 @@ function translate_line() {
 
     # Only append if $TRANSLATED_LINE not empty
     if [ -n "$TRANSLATED_LINE" ]; then
-        echo "Line: $LINE_INDEX - Appending translated line!";
+        echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES -" \
+            "Appending '$TRANSLATED_LINE' translation for line '$ORIGINAL_LINE'!";
         echo "$ORIGINAL_LINE==>$TRANSLATED_LINE" >> "$TMP_GIT_LOG_EXPRESSIONS_FILE";
     fi
 }
@@ -160,44 +163,54 @@ TMP_GIT_LOG_DIR="$TMP_DIR/git-log";
 TMP_GIT_LOG_FILE="$TMP_GIT_LOG_DIR/git-log.txt";
 TMP_GIT_LOG_EXPRESSIONS_FILE="$TMP_GIT_LOG_DIR/git-log-expressions.txt";
 
-echo "Cleaning up temporary conversion directory ($TMP_DIR)...";
+echo "Cleaning up temporary conversion directory:"
+echo "- Dir: '$TMP_DIR'";
 # shellcheck disable=SC2216
 yes | rm -fr "$TMP_DIR";
 mkdir "$TMP_DIR" "$TMP_GIT_LOG_DIR";
 
-echo "Copying the Git repository input directory ($INPUT_GIT_REPO_DIR)" \
-    "to the temporary Git conversion directory ($TMP_GIT_REPO_DIR)...";
+echo "Copying the Git repository input directory to the temporary Git conversion directory:";
+echo "- From: '$INPUT_GIT_REPO_DIR'"
+echo "- To: '$TMP_GIT_REPO_DIR'";
 cp -r "$INPUT_GIT_REPO_DIR" "$TMP_GIT_REPO_DIR";
 
-echo "Moving to temporary Git conversion directory ($TMP_GIT_REPO_DIR)...";
+echo "Moving to temporary Git conversion directory:";
+echo "- Dir: '$TMP_GIT_REPO_DIR'";
 cd "$TMP_GIT_REPO_DIR/" || exit;
 
-echo "Log git commit message history of all branches to temporary git-log file ($TMP_GIT_LOG_FILE), include new-lines..."
+echo "Log git commit message history of all branches to temporary git-log file, include new-lines:";
+echo "- Git-Log File: '$TMP_GIT_LOG_FILE'";
 git log --all --pretty=format:"%B" > "$TMP_GIT_LOG_FILE";
 
-echo "Strip empty new lines from temporary git-log file ($TMP_GIT_LOG_FILE)..."
+echo "Strip empty new lines from temporary git-log file:";
+echo "- Git-Log File: '$TMP_GIT_LOG_FILE'";
 sed -i '/^$/d' "$TMP_GIT_LOG_FILE" &>/dev/null;
 
-echo "Strip duplicate lines from temporary git-log file ($TMP_GIT_LOG_FILE)..."
+echo "Strip duplicate lines from temporary git-log file:"
+echo "- Git-Log File: '$TMP_GIT_LOG_FILE'";
 awk -i inplace '!seen[$0]++' "$TMP_GIT_LOG_FILE";
 
-echo "Combining temporary git-log file ($TMP_GIT_LOG_FILE) lines with DeepLX translations" \
-    "into temporary git-log expressions file ($TMP_GIT_LOG_EXPRESSIONS_FILE)...";
+echo "Combining temporary git-log file lines with DeepLX translations into temporary git-log expressions file:";
+echo "- Git-Log File: '$TMP_GIT_LOG_FILE'";
+echo "- Git-Log-Expressions File: '$TMP_GIT_LOG_EXPRESSIONS_FILE'";
 touch "$TMP_GIT_LOG_EXPRESSIONS_FILE";
 TMP_GIT_LOG_FILE_LINES=$(wc -l < "$TMP_GIT_LOG_FILE");
 for LINE_INDEX in $(seq "$TMP_GIT_LOG_FILE_LINES"); do
     translate_line "$LINE_INDEX";
 done
 
-echo "Replace git commit message history with temporary git-log expressions file ($TMP_GIT_LOG_EXPRESSIONS_FILE)...";
+echo "Replace git commit message history with temporary git-log expressions file:";
+echo "- Git-Log-Expressions File: '$TMP_GIT_LOG_EXPRESSIONS_FILE'";
 git filter-repo --force --replace-message "$TMP_GIT_LOG_EXPRESSIONS_FILE";
 
-echo "Cleaning up Git repository output directory ($OUTPUT_GIT_REPO_DIR)...";
+echo "Cleaning up Git repository output directory:";
+echo "- Dir: '$OUTPUT_GIT_REPO_DIR'"
 # shellcheck disable=SC2216
 yes | rm -fr "$OUTPUT_GIT_REPO_DIR";
 
-echo "Moving the temporary Git conversion directory ($TMP_GIT_REPO_DIR)" \
-    "to Git repository output directory ($OUTPUT_GIT_REPO_DIR)...";
+echo "Moving the temporary Git conversion directory to Git repository output directory:";
+echo "- From: '$TMP_GIT_REPO_DIR'";
+echo "- To: '$OUTPUT_GIT_REPO_DIR'";
 mv "$TMP_GIT_REPO_DIR" "$OUTPUT_GIT_REPO_DIR";
 
 echo -e "${GREEN}git-deepl-translator has been executed to its end!${END}";
