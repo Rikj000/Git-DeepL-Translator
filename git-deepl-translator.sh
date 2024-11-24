@@ -55,6 +55,50 @@ function update() {
     exit;
 }
 
+function translate_line() {
+    # Pass through the $LINE_INDEX parameter
+    LINE_INDEX="$1";
+
+    ORIGINAL_LINE=$(head -n "$LINE_INDEX" "$TMP_GIT_LOG_FILE" | tail -n 1);
+    # Replace 'TAB' with 'space' to prevent DeepLX from crashing
+    FORMATTED_LINE=${ORIGINAL_LINE//	/ };
+    FORMATTED_LINE=${FORMATTED_LINE//　/ };
+    # Replace 'double quote' with 'single quote' to prevent DeepLX from crashing
+    FORMATTED_LINE=${FORMATTED_LINE//\"/\'}
+    # Replace '/' with '' to prevent DeepLX from crashing
+    FORMATTED_LINE=${FORMATTED_LINE//\\}
+
+    # Replace 'space' with '' to check if line empty
+    if [ -z "${FORMATTED_LINE// }" ] &>/dev/null; then
+        echo "Line: $LINE_INDEX - Skipping empty line...";
+        return;
+    fi
+
+    TRANSLATED_LINE="null";
+    while [ "$TRANSLATED_LINE" == "null" ]; do
+        TRANSLATED_LINE=$(curl -s -X POST "$DEEPLX_URL/translate" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"text\": \"$FORMATTED_LINE\",
+            \"source_lang\": \"$INPUT_LANGUAGE\",
+            \"target_lang\": \"$OUTPUT_LANGUAGE\"
+        }" | jq -r '.data');
+
+        if [ "$TRANSLATED_LINE" == "null" ]; then
+            echo "Line: $LINE_INDEX - Received null translation for line '$FORMATTED_LINE'," \
+                "re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
+            echo "Likely rate-limited, either wait it out, or switch VPN connections + restart 'deeplx' to continue...";
+            sleep "$DEEPLX_RETRY_SECONDS";
+        fi
+    done
+
+    # Only append if $TRANSLATED_LINE not empty
+    if [ -n "$TRANSLATED_LINE" ]; then
+        echo "Line: $LINE_INDEX - Appending translated line!";
+        echo "$ORIGINAL_LINE==>$TRANSLATED_LINE" >> "$TMP_GIT_LOG_EXPRESSIONS_FILE";
+    fi
+}
+
 # ANSI text coloring
 GREEN='\033[0;32m';
 RED='\033[0;31m';
@@ -137,45 +181,7 @@ echo "Combining temporary git-log file ($TMP_GIT_LOG_FILE) lines with DeepLX tra
 touch "$TMP_GIT_LOG_EXPRESSIONS_FILE";
 TMP_GIT_LOG_FILE_LINES=$(wc -l < "$TMP_GIT_LOG_FILE");
 for LINE_INDEX in $(seq "$TMP_GIT_LOG_FILE_LINES"); do
-
-    ORIGINAL_LINE=$(head -n "$LINE_INDEX" "$TMP_GIT_LOG_FILE" | tail -n 1);
-    # Replace 'TAB' with 'space' to prevent DeepLX from crashing
-    FORMATTED_LINE=${ORIGINAL_LINE//	/ };
-    FORMATTED_LINE=${FORMATTED_LINE//　/ };
-    # Replace 'double quote' with 'single quote' to prevent DeepLX from crashing
-    FORMATTED_LINE=${FORMATTED_LINE//\"/\'}
-    # Replace '/' with '' to prevent DeepLX from crashing
-    FORMATTED_LINE=${FORMATTED_LINE//\\}
-
-    # Replace 'space' with '' to check if line empty
-    if [ -z "${FORMATTED_LINE// }" ] &>/dev/null; then
-        echo "Line: $LINE_INDEX - Skipping empty line...";
-        continue;
-    fi
-
-    TRANSLATED_LINE="null";
-    while [ "$TRANSLATED_LINE" == "null" ]; do
-        TRANSLATED_LINE=$(curl -s -X POST "$DEEPLX_URL/translate" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"text\": \"$FORMATTED_LINE\",
-            \"source_lang\": \"$INPUT_LANGUAGE\",
-            \"target_lang\": \"$OUTPUT_LANGUAGE\"
-        }" | jq -r '.data');
-
-        if [ "$TRANSLATED_LINE" == "null" ]; then
-            echo "Line: $LINE_INDEX - Received null translation for line '$FORMATTED_LINE'," \
-                "re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
-            echo "Likely rate-limited, either wait it out, or switch VPN connections + restart 'deeplx' to continue...";
-            sleep "$DEEPLX_RETRY_SECONDS";
-        fi
-    done
-
-    # Only append if $TRANSLATED_LINE not empty
-    if [ -n "$TRANSLATED_LINE" ]; then
-        echo "Line: $LINE_INDEX - Appending translated line!";
-        echo "$ORIGINAL_LINE==>$TRANSLATED_LINE" >> "$TMP_GIT_LOG_EXPRESSIONS_FILE";
-    fi
+    translate_line "$LINE_INDEX";
 done
 
 echo "Replace git commit message history with temporary git-log expressions file ($TMP_GIT_LOG_EXPRESSIONS_FILE)...";
