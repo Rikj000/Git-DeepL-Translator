@@ -176,7 +176,7 @@ echo "Log git commit message history of all branches to temporary git-log file (
 git log --all --pretty=format:"%B" > "$TMP_GIT_LOG_FILE";
 
 echo "Strip empty new lines from temporary git-log file ($TMP_GIT_LOG_FILE)..."
-sed -i '/^$/d' "$TMP_GIT_LOG_FILE";
+sed -i '/^$/d' "$TMP_GIT_LOG_FILE" &>/dev/null;
 
 echo "Strip duplicate lines from temporary git-log file ($TMP_GIT_LOG_FILE)..."
 awk -i inplace '!seen[$0]++' "$TMP_GIT_LOG_FILE";
