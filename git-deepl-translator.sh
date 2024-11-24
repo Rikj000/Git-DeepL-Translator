@@ -90,11 +90,9 @@ do
         ;;
         -h|-help)
         usage;
-        shift
         ;;
         -u|-update)
         update;
-        shift
         ;;
         *)
         echo "";
@@ -102,7 +100,6 @@ do
         echo "";
         echo "  Please see the 'git-deepl-translator -help' output below for the correct usage:";
         usage;
-        shift # Remove generic argument from processing
         ;;
     esac
 done
