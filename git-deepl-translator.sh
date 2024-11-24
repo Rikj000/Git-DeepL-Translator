@@ -77,7 +77,7 @@ function translate_line() {
     fi
 
     TRANSLATED_LINE="null";
-    while [ "$TRANSLATED_LINE" == "null" ]; do
+    while [ "$TRANSLATED_LINE" == "null" ] || [ -z "$TRANSLATED_LINE" ]; do
         TRANSLATED_LINE=$(curl -s -X POST "$DEEPLX_URL/translate" \
         -H "Content-Type: application/json" \
         -d "{
@@ -86,8 +86,8 @@ function translate_line() {
             \"target_lang\": \"$OUTPUT_LANGUAGE\"
         }" | jq -r '.data');
 
-        if [ "$TRANSLATED_LINE" == "null" ]; then
-            echo "Line: $LINE_INDEX - Received null translation for line '$FORMATTED_LINE'," \
+        if [ "$TRANSLATED_LINE" == "null" ] || [ -z "$TRANSLATED_LINE" ]; then
+            echo "Line: $LINE_INDEX - Received '$TRANSLATED_LINE' translation for line '$FORMATTED_LINE'," \
                 "re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
             echo "Likely rate-limited, either wait it out, or switch VPN connections + restart 'deeplx' to continue...";
             sleep "$DEEPLX_RETRY_SECONDS";
