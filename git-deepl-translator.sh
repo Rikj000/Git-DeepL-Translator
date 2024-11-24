@@ -14,7 +14,7 @@ OUTPUT_LANGUAGE="EN";
 function usage() {
     cat << EOF
 
-  Git-DeepL-Translator - v0.0.0
+  Git-DeepL-Translator - v1.0.0
   Simple "bash" script to translate the whole commit message history,
   of a local Git repository, from one language to another, using DeepLX!
 
