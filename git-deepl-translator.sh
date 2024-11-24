@@ -27,7 +27,7 @@ usage() {
   Optional options:
     -h,    -help                           Show this help.
     -u,    -update                         Update Git-DeepL-Translator to the latest version.
-    -dl,   -deeplx_url=<url>               URL to the DeepLX API, defaults to 'http://localhost:1188'
+    -du,   -deeplx_url=<url>               URL to the DeepLX API, defaults to 'http://localhost:1188'
     -ds,   -deeplx_retry_seconds=<sec>     Amount of seconds to wait before retrying to fetch a DeepLX translation in case none was received, defaults to 10
     -ig,   -input_git_repo_dir=<path>      Path to local input Git repository
     -og,   -output_git_repo_dir=<path>     Path to local output Git repository
