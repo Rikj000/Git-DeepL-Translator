@@ -208,6 +208,11 @@ for LINE_INDEX in $(seq "$TMP_GIT_LOG_FILE_LINES"); do
     translate_line "$LINE_INDEX";
 done
 
+TMP_GIT_LOG_EXPRESSIONS_FILE_LINES=$(wc -l < "$TMP_GIT_LOG_EXPRESSIONS_FILE");
+echo "Successfully processed $TMP_GIT_LOG_EXPRESSIONS_FILE_LINES/$TMP_GIT_LOG_FILE_LINES" \
+    "into temporary git-log expressions file:"
+echo "- Git-Log-Expressions File: '$TMP_GIT_LOG_EXPRESSIONS_FILE'";
+
 echo "Replace git commit message history with temporary git-log expressions file:";
 echo "- Git-Log-Expressions File: '$TMP_GIT_LOG_EXPRESSIONS_FILE'";
 git filter-repo --force --replace-message "$TMP_GIT_LOG_EXPRESSIONS_FILE";
