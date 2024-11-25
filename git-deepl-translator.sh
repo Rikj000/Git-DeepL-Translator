@@ -79,29 +79,38 @@ function translate_line() {
 
     TRANSLATED_LINE="null";
     while [ "$TRANSLATED_LINE" == "null" ] || [ -z "$TRANSLATED_LINE" ]; do
-        TRANSLATED_LINE=$(curl -s -X POST "$DEEPLX_URL/translate" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"text\": \"$FORMATTED_LINE\",
-            \"source_lang\": \"$INPUT_LANGUAGE\",
-            \"target_lang\": \"$OUTPUT_LANGUAGE\"
-        }" | jq -r '.data');
+        DEEPLX_RESPONSE=$(curl -s -X POST "$DEEPLX_URL/translate" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"text\": \"$FORMATTED_LINE\",
+                \"source_lang\": \"$INPUT_LANGUAGE\",
+                \"target_lang\": \"$OUTPUT_LANGUAGE\"
+            }");
+        DEEPLX_RESPONSE_CODE=$(echo "$DEEPLX_RESPONSE" | jq -r '.code');
+        TRANSLATED_LINE="$(echo "$DEEPLX_RESPONSE" | jq -r '.data')";
 
-        if [ "$TRANSLATED_LINE" == "null" ] || [ -z "$TRANSLATED_LINE" ]; then
+        # Handle non-successful response
+        if [ "$DEEPLX_RESPONSE_CODE" != "200" ]; then # Translation failed + Rate Limited
             echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES -" \
                 "Received '$TRANSLATED_LINE' translation for line '$ORIGINAL_LINE'...";
-            echo "Re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
+
+            DEEPLX_RESPONSE_MESSAGE=$(echo "$DEEPLX_RESPONSE" | jq -r '.message');
+            echo "Received bad DeepLX response (code: '$DEEPLX_RESPONSE_CODE', message: '$DEEPLX_RESPONSE_MESSAGE')";
             echo "Likely rate-limited, either wait it out, or switch VPN connections + restart 'deeplx' to continue...";
-            sleep "$DEEPLX_RETRY_SECONDS";
+
+            echo "Re-trying in '$DEEPLX_RETRY_SECONDS' seconds...";
+            read -r -t "$DEEPLX_RETRY_SECONDS" -p "Or hit ENTER to manually skip translation for line!";
+            if [[ $? -le 128 ]]; then
+                echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES - Manually skipping line..."
+                return;
+            fi
+            echo "";
         fi
     done
 
-    # Only append if $TRANSLATED_LINE not empty
-    if [ -n "$TRANSLATED_LINE" ]; then
-        echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES -" \
-            "Appending '$TRANSLATED_LINE' translation for line '$ORIGINAL_LINE'!";
-        echo "$ORIGINAL_LINE==>$TRANSLATED_LINE" >> "$TMP_GIT_LOG_EXPRESSIONS_FILE";
-    fi
+    echo "Line: $LINE_INDEX/$TMP_GIT_LOG_FILE_LINES -" \
+        "Appending '$TRANSLATED_LINE' translation for line '$ORIGINAL_LINE'!";
+    echo "$ORIGINAL_LINE==>$TRANSLATED_LINE" >> "$TMP_GIT_LOG_EXPRESSIONS_FILE";
 }
 
 # ANSI text coloring
